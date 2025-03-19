@@ -48,7 +48,7 @@ async function submitUpdatedGroups() {
     outputDiv.innerHTML = "<strong>Processing...</strong><br>";
 
     try {
-        let response = await fetch(`${API_URL}/csv/analyze_and_load/`, {
+        let response = await fetch(`${API_URL}/csv/drop_and_create_table/`, {  // ✅ Updated API Endpoint
             method: "POST",
             headers: {
                 "Authorization": AUTH_TOKEN,
@@ -70,10 +70,10 @@ async function submitUpdatedGroups() {
             outputDiv.innerHTML += decoder.decode(value) + "<br>";
         }
 
-        outputDiv.innerHTML += "<br><strong>✅ Process Completed</strong>";
+        outputDiv.innerHTML += "<br><strong>✅ Tables Created Successfully</strong>";
 
     } catch (error) {
         console.error("Error:", error);
-        outputDiv.innerHTML += "<br><strong>❌ Failed to analyze and load CSVs.</strong>";
+        outputDiv.innerHTML += "<br><strong>❌ Failed to create tables.</strong>";
     }
 }

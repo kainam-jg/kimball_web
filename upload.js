@@ -1,6 +1,6 @@
 import { API_URL, AUTH_TOKEN } from "./config.js";
 
-export async function startUpload() {  // ✅ Exported the function
+export async function startUpload() {
     let files = document.getElementById("fileInput").files;
     let progressContainer = document.getElementById("progressContainer");
 
@@ -19,7 +19,7 @@ export async function startUpload() {  // ✅ Exported the function
 
             let success = await uploadChunk(file, chunkData, chunkNumber, totalChunks);
             if (!success) {
-                alert(`❌ Failed to upload chunk ${chunkNumber} of ${file.name}`);
+                alert(`Failed to upload chunk ${chunkNumber} of ${file.name}`);
                 return;
             }
 
@@ -28,9 +28,9 @@ export async function startUpload() {  // ✅ Exported the function
 
         let finalizeSuccess = await finalizeUpload(file.name, totalChunks);
         if (finalizeSuccess) {
-            alert(`✅ ${file.name} uploaded successfully!`);
+            alert(`${file.name} uploaded successfully!`);
         } else {
-            alert(`❌ Failed to finalize ${file.name}`);
+            alert(`Failed to finalize ${file.name}`);
         }
     }
 }

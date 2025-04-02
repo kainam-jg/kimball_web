@@ -109,23 +109,15 @@ function groupCSVsStream() {
     });
 
     eventSource.addEventListener("complete", function (event) {
-        try {
-            const data = JSON.parse(event.data);
-            fileGroups = data.groups;
-            console.log("✅ Final grouped_output received:", data);
-
-            displayGroupResults(fileGroups);
-            statusBox.innerHTML += `<p>✅ Grouping complete. Ready for next step.</p>`;
-        } catch (e) {
-            console.error("❌ Error parsing 'complete' event data:", e);
-            statusBox.innerHTML += `<p>❌ Error parsing server response.</p>`;
-        } finally {
-            eventSource.close();
-        }
+        const data = JSON.parse(event.data);
+        fileGroups = data.groups;
+        displayGroupResults(data.groups);
+        statusBox.innerHTML += "<p>✅ Grouping complete. Ready for next step.</p>";
+        eventSource.close();
     });
 
-    eventSource.onerror = function (err) {
-        console.error("❌ SSE connection error:", err);
+    eventSource.onerror = function (event) {
+        console.error("❌ SSE connection error:", event);
         statusBox.innerHTML += "<p>❌ Error while grouping files.</p>";
         eventSource.close();
     };
@@ -142,11 +134,13 @@ function displayGroupResults(groups) {
                 <strong>Files:</strong> ${group.files.join(", ")}
                 <br>
                 <strong>Headers:</strong> ${group.headers.join(", ")}
+                <br>
+                <strong>Total Rows:</strong> ${group.total_row_count}
                 <br><br>
             </li>`;
     });
     output += "</ul>";
-    document.getElementById("output").innerHTML = output;
+    document.getElementById("groupResults").innerHTML = output;
 }
 
 async function dropAndCreateTables() {
@@ -178,6 +172,7 @@ async function dropAndCreateTables() {
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
+
         updatedJson = JSON.stringify({ groups: updatedGroups });
 
         let data = await response.json();
@@ -215,7 +210,6 @@ async function loadData() {
     }
 }
 
-// Expose functions to global scope
 window.startUpload = startUpload;
 window.groupCSVsStream = groupCSVsStream;
 window.dropAndCreateTables = dropAndCreateTables;

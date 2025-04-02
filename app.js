@@ -94,50 +94,67 @@ async function startUpload() {
     }
 }
 
-//async function groupCSVs() {
-//    try {
-//        let response = await fetch(`${config.API_URL}/csv/group_csvs/`, {
-//            method: "GET",
-//            headers: { "Authorization": config.AUTH_TOKEN }
-//        });
-//
-//        if (!response.ok) {
-//            throw new Error(`HTTP error! Status: ${response.status}`);
-//        }
-//
-//        let data = await response.json();
-//        fileGroups = data.groups;
-//
-//        let output = "<h3>Grouped CSV Files</h3><ul>";
-//        fileGroups.forEach((group, index) => {
-//            output += `
-//                <li>
-//                    <strong>Table Name:</strong>
-//                    <input type="text" id="group_${index}" value="${group.group}">
-//                    <br>
-//                    <strong>Files:</strong> ${group.files.join(", ")}
-//                    <br>
-//                    <strong>Headers:</strong> ${group.headers.join(", ")}
-//                    <br><br>
-//                </li>`;
-//        });
-//        output += "</ul>";
-//
-//        document.getElementById("output").innerHTML = output;
-//    } catch (error) {
-//        console.error("Error grouping CSV files:", error);
-//        alert(`Failed to group CSV files: ${error.message}`);
-//    }
-//}
+function groupCSVsStream() {
+    const statusBox = document.getElementById("groupStatus");
+    statusBox.innerHTML = "<p>🔄 Grouping CSV files...</p>";
+
+    const eventSource = new EventSource(`${config.API_URL}/csv/group_csvs_stream/?token=${encodeURIComponent(config.AUTH_TOKEN)}`);
+
+    eventSource.addEventListener("start", function (event) {
+        statusBox.innerHTML += `<p>🚀 ${event.data}</p>`;
+    });
+
+    eventSource.addEventListener("progress", function (event) {
+        statusBox.innerHTML += `<p>${event.data}</p>`;
+    });
+
+    eventSource.addEventListener("complete", function (event) {
+        try {
+            const data = JSON.parse(event.data);
+            fileGroups = data.groups;
+            console.log("✅ Final grouped_output received:", data);
+
+            displayGroupResults(fileGroups);
+            statusBox.innerHTML += `<p>✅ Grouping complete. Ready for next step.</p>`;
+        } catch (e) {
+            console.error("❌ Error parsing 'complete' event data:", e);
+            statusBox.innerHTML += `<p>❌ Error parsing server response.</p>`;
+        } finally {
+            eventSource.close();
+        }
+    });
+
+    eventSource.onerror = function (err) {
+        console.error("❌ SSE connection error:", err);
+        statusBox.innerHTML += "<p>❌ Error while grouping files.</p>";
+        eventSource.close();
+    };
+}
+
+function displayGroupResults(groups) {
+    let output = "<h3>Grouped CSV Files</h3><ul>";
+    groups.forEach((group, index) => {
+        output += `
+            <li>
+                <strong>Table Name:</strong>
+                <input type="text" id="group_${index}" value="${group.group}">
+                <br>
+                <strong>Files:</strong> ${group.files.join(", ")}
+                <br>
+                <strong>Headers:</strong> ${group.headers.join(", ")}
+                <br><br>
+            </li>`;
+    });
+    output += "</ul>";
+    document.getElementById("output").innerHTML = output;
+}
 
 async function dropAndCreateTables() {
     try {
-        // Prepare the updated fileGroups with the modified table names
         const updatedGroups = fileGroups.map((group, index) => {
             const tableNameInput = document.getElementById(`group_${index}`);
             const tableName = tableNameInput ? tableNameInput.value : group.group;
 
-            // Remove BOM from header names if present
             const cleanedHeaders = group.headers.map(header => header.replace(/^\uFEFF/, ""));
 
             return {
@@ -147,7 +164,6 @@ async function dropAndCreateTables() {
             };
         });
 
-        // Log the cleaned payload
         console.log("Payload being sent:", JSON.stringify({ groups: updatedGroups }, null, 2));
 
         let response = await fetch(`${config.API_URL}/csv/drop_and_create_table/`, {
@@ -156,13 +172,13 @@ async function dropAndCreateTables() {
                 "Authorization": config.AUTH_TOKEN,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ groups: updatedGroups })  // Correct JSON structure
+            body: JSON.stringify({ groups: updatedGroups })
         });
 
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        updatedJson = JSON.stringify({ groups: updatedGroups })
+        updatedJson = JSON.stringify({ groups: updatedGroups });
 
         let data = await response.json();
         console.log("Tables dropped and created:", data);
@@ -175,8 +191,6 @@ async function dropAndCreateTables() {
 
 async function loadData() {
     try {
-        // Log the fileGroups to check what is being sent
-        //console.log("Sending fileGroups:", JSON.stringify({ groups: fileGroups }));
         console.log("Sending fileGroups:", updatedJson);
 
         const response = await fetch(`${config.API_URL}/csv/load_data/`, {
@@ -185,9 +199,7 @@ async function loadData() {
                 "Content-Type": "application/json",
                 "Authorization": config.AUTH_TOKEN
             },
-            //body: JSON.stringify({ groups: fileGroups })  // ✅ Correct payload structure
             body: updatedJson
-
         });
 
         if (!response.ok) {
@@ -203,44 +215,8 @@ async function loadData() {
     }
 }
 
-function groupCSVsStream() {
-    const statusBox = document.getElementById("groupStatus");
-    statusBox.innerHTML = "<p>🔄 Grouping CSV files...</p>";
-
-    const eventSource = new EventSource(`${config.API_URL}/csv/group_csvs_stream/`);
-
-    eventSource.onmessage = function (event) {
-        const data = JSON.parse(event.data);
-        if (data.groups) {
-            displayGroupResults(data.groups);
-            statusBox.innerHTML += "<p>✅ Grouping complete. Ready for next step.</p>";
-            eventSource.close();
-        }
-    };
-
-    eventSource.addEventListener("progress", function (event) {
-        statusBox.innerHTML += `<p>${event.data}</p>`;
-    });
-
-    eventSource.addEventListener("start", function (event) {
-        statusBox.innerHTML += `<p>🚀 ${event.data}</p>`;
-    });
-
-    eventSource.addEventListener("complete", function (event) {
-        const data = JSON.parse(event.data);
-        displayGroupResults(data.groups);
-        eventSource.close();
-    });
-
-    eventSource.onerror = function () {
-        statusBox.innerHTML += "<p>❌ Error while grouping files.</p>";
-        eventSource.close();
-    };
-}
-
 // Expose functions to global scope
 window.startUpload = startUpload;
-//window.groupCSVs = groupCSVs;
 window.groupCSVsStream = groupCSVsStream;
 window.dropAndCreateTables = dropAndCreateTables;
 window.loadData = loadData;

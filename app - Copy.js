@@ -1,4 +1,3 @@
-// app.js
 import config from "./config.json" with { type: "json" };
 
 let fileGroups = [];
@@ -97,6 +96,8 @@ async function startUpload() {
 
 async function groupCSVs() {
     try {
+        document.getElementById("groupStatus").innerHTML = "<p>⏳ Processing files...</p>";
+
         let response = await fetch(`${config.API_URL}/csv/group_csvs/`, {
             method: "GET",
             headers: { "Authorization": config.AUTH_TOKEN }
@@ -125,22 +126,19 @@ async function groupCSVs() {
         output += "</ul>";
 
         document.getElementById("groupResults").innerHTML = output;
+        document.getElementById("groupStatus").innerHTML += "<p>✅ Grouping complete. Ready for next step.</p>";
     } catch (error) {
         console.error("Error grouping CSV files:", error);
         alert(`Failed to group CSV files: ${error.message}`);
     }
 }
 
-async function createTablesAndLoadData() {
-    const button = document.getElementById("loadButton");
-    const statusDiv = document.getElementById("loadStatus");
-    button.disabled = true;
-    statusDiv.innerHTML = "<p>⏳ Starting table creation and data load...</p>";
-
+async function dropAndCreateTables() {
     try {
         const updatedGroups = fileGroups.map((group, index) => {
             const tableNameInput = document.getElementById(`group_${index}`);
             const tableName = tableNameInput ? tableNameInput.value : group.group;
+
             const cleanedHeaders = group.headers.map(header => header.replace(/^\uFEFF/, ""));
 
             return {
@@ -150,49 +148,68 @@ async function createTablesAndLoadData() {
             };
         });
 
-        const payload = JSON.stringify({ groups: updatedGroups });
-        updatedJson = payload;
+        console.log("Payload being sent:", JSON.stringify({ groups: updatedGroups }, null, 2));
 
-        statusDiv.innerHTML += "<p>🛠️ Creating tables...</p>";
-        const createResponse = await fetch(`${config.API_URL}/csv/drop_and_create_table/`, {
+        let response = await fetch(`${config.API_URL}/csv/drop_and_create_table/`, {
             method: "POST",
             headers: {
                 "Authorization": config.AUTH_TOKEN,
                 "Content-Type": "application/json"
             },
-            body: payload
+            body: JSON.stringify({ groups: updatedGroups })
         });
 
-        if (!createResponse.ok) {
-            throw new Error(`Table creation failed. Status: ${createResponse.status}`);
-        }
-        statusDiv.innerHTML += "<p>✅ Tables created successfully.</p>";
-
-        statusDiv.innerHTML += "<p>📤 Loading data into tables...</p>";
-        const loadResponse = await fetch(`${config.API_URL}/csv/load_data/`, {
-            method: "POST",
-            headers: {
-                "Authorization": config.AUTH_TOKEN,
-                "Content-Type": "application/json"
-            },
-            body: payload
-        });
-
-        if (!loadResponse.ok) {
-            throw new Error(`Data load failed. Status: ${loadResponse.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
-        const result = await loadResponse.json();
-        statusDiv.innerHTML += `<p>🎉 All data loaded successfully: ${result.message}</p>`;
+        updatedJson = JSON.stringify({ groups: updatedGroups });
+
+        let data = await response.json();
+        console.log("Tables dropped and created:", data);
+        alert("Tables dropped and created successfully!");
     } catch (error) {
-        console.error("❌ Error during table creation and data load:", error);
-        statusDiv.innerHTML += `<p style="color:red;">❌ ${error.message}</p>`;
-    } finally {
-        button.disabled = false;
+        console.error("Error:", error);
+        alert(`Error: ${error.message}`);
     }
 }
 
-// Expose functions
+async function loadData() {
+    try {
+        console.log("Sending fileGroups:", updatedJson);
+
+        const response = await fetch(`${config.API_URL}/csv/load_data/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": config.AUTH_TOKEN
+            },
+            body: updatedJson
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Data loaded successfully:", result);
+        alert("Data loaded successfully!");
+    } catch (error) {
+        console.error("Error loading data:", error);
+        alert(`Error loading data: ${error.message}`);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const groupButton = document.getElementById("groupButton");
+    groupButton.onclick = () => {
+        if (confirm("This step may take several minutes depending on the number and size of your files. Do you want to proceed?")) {
+            groupCSVs();
+        }
+    };
+});
+
 window.startUpload = startUpload;
+window.dropAndCreateTables = dropAndCreateTables;
+window.loadData = loadData;
 window.groupCSVs = groupCSVs;
-window.createTablesAndLoadData = createTablesAndLoadData;

@@ -10,19 +10,23 @@
     <h2>CSV Processing Pipeline</h2>
 
     <!-- File Upload -->
-    <h3>1. Upload Files</h3>
+    <h3>Upload CSV Files</h3>
     <input type="file" id="fileInput" multiple>
     <button onclick="startUpload()">Upload</button>
     <div id="progressContainer"></div>
 
     <!-- Grouping -->
-    <h3>2. File Discovery</h3>
-    <button onclick="groupCSVs()">Group CSVs</button>
+    <h3>Group CSV Files</h3>
+    <button id="groupButton">Group CSV Files</button>
+    <div id="groupStatus"></div>
     <div id="groupResults"></div>
 
-    <!-- Load Data (includes drop + create tables) -->
-    <h3>3. Load Data into Database</h3>
-    <button id="loadButton" onclick="createTablesAndLoadData()">Load Data</button>
-    <div id="loadStatus"></div>
+    <!-- Drop and Create Tables -->
+    <h3>Drop and Create Tables</h3>
+    <button onclick="dropAndCreateTables()">Drop and Create Tables</button>
+
+    <!-- Load Data -->
+    <h3>Load Data into ClickHouse</h3>
+    <button onclick="loadData()">Load Data</button>
 </body>
 </html>

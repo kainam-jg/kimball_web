@@ -16,13 +16,39 @@
     <div id="progressContainer"></div>
 
     <!-- Grouping -->
-    <h3>2. File Discovery</h3>
-    <button onclick="groupCSVs()">Group CSVs</button>
+    <h3>2. Analyze Files</h3>
+    <button id="groupButton">Analyze Files</button>
+    <div id="groupStatus"></div>
     <div id="groupResults"></div>
 
     <!-- Load Data (includes drop + create tables) -->
     <h3>3. Load Data into Database</h3>
     <button id="loadButton" onclick="createTablesAndLoadData()">Load Data</button>
     <div id="loadStatus"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const groupButton = document.getElementById("groupButton");
+            const groupStatus = document.getElementById("groupStatus");
+
+            groupButton.onclick = async () => {
+                if (confirm("This step may take several minutes depending on the number and size of your files. Do you want to proceed?")) {
+                    groupButton.disabled = true;
+                    groupButton.textContent = "Analyzing...";
+                    groupStatus.textContent = "🔄 Analyzing files, please wait...";
+
+                    try {
+                        await groupCSVs();  // assumes groupCSVs is async
+                        groupStatus.textContent = "✅ Analysis complete. Ready for next step.";
+                    } catch (error) {
+                        groupStatus.textContent = "❌ An error occurred during analysis.";
+                    } finally {
+                        groupButton.disabled = false;
+                        groupButton.textContent = "Analyze Files";
+                    }
+                }
+            };
+        });
+    </script>
 </body>
 </html>

@@ -23,6 +23,7 @@ async function initializeUpload(file) {
         }
 
         sessionStorage.setItem("session_token", data.session_token);
+        console.log("✅ session_token set:", data.session_token);
         return data.session_token;
     } catch (error) {
         console.error("Session initialization failed:", error);
@@ -33,18 +34,25 @@ async function initializeUpload(file) {
 
 async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
     const session_token = sessionStorage.getItem("session_token");
+    if (!session_token) {
+        alert("❌ Missing session token. Upload cannot proceed.");
+        return false;
+    }
 
     const formData = new FormData();
     formData.append("file", chunkData, file.name);
-    formData.append("chunk_number", chunkNumber);
-    formData.append("total_chunks", totalChunks);
+    formData.append("chunk_number", Number(chunkNumber));
+    formData.append("total_chunks", Number(totalChunks));
     formData.append("filename", file.name);
     formData.append("session_token", session_token);
 
-    // Debugging: print form fields
-    for (let [key, value] of formData.entries()) {
-        console.log(`${key}: ${value}`);
-    }
+    // Debug log: all form fields
+    console.log("📤 Sending chunk:", {
+        chunk_number: chunkNumber,
+        total_chunks: totalChunks,
+        filename: file.name,
+        session_token
+    });
 
     try {
         const response = await fetch(`${config.API_URL}/upload/upload_chunk/`, {
@@ -56,13 +64,14 @@ async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            const err = await response.text();
+            throw new Error(`Status ${response.status}: ${err}`);
         }
 
-        console.log(`✅ Uploaded chunk ${chunkNumber} of ${totalChunks} for ${file.name}`);
+        console.log(`✅ Uploaded chunk ${chunkNumber}/${totalChunks} for ${file.name}`);
         return true;
     } catch (error) {
-        console.error("Upload failed:", error);
+        console.error("❌ Upload failed:", error);
         alert(`Upload failed: ${error.message}`);
         return false;
     }
@@ -70,10 +79,14 @@ async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
 
 async function finalizeUpload(filename, totalChunks) {
     const session_token = sessionStorage.getItem("session_token");
+    if (!session_token) {
+        alert("❌ Missing session token. Finalize cannot proceed.");
+        return false;
+    }
 
     const formData = new FormData();
     formData.append("filename", filename);
-    formData.append("total_chunks", totalChunks);
+    formData.append("total_chunks", Number(totalChunks));
     formData.append("session_token", session_token);
 
     try {
@@ -86,13 +99,14 @@ async function finalizeUpload(filename, totalChunks) {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            const err = await response.text();
+            throw new Error(`Status ${response.status}: ${err}`);
         }
 
         console.log(`✅ Finalized upload for ${filename}`);
         return true;
     } catch (error) {
-        console.error("Finalize upload failed:", error);
+        console.error("❌ Finalize upload failed:", error);
         alert(`Finalize upload failed: ${error.message}`);
         return false;
     }
@@ -101,13 +115,14 @@ async function finalizeUpload(filename, totalChunks) {
 async function startUpload() {
     const files = document.getElementById("fileInput").files;
     const progressContainer = document.getElementById("progressContainer");
+    progressContainer.innerHTML = ""; // Clear previous progress bars
 
     if (!files.length) {
         alert("Please select files to upload.");
         return;
     }
 
-    // ⚠️ Session initialized with the FIRST file only
+    // Initialize upload session using the first file
     const session_token = await initializeUpload(files[0]);
     if (!session_token) return;
 
@@ -245,7 +260,7 @@ async function createTablesAndLoadData() {
     }
 }
 
-// Expose public functions
+// Expose public functions to the window
 window.startUpload = startUpload;
 window.groupCSVs = groupCSVs;
 window.createTablesAndLoadData = createTablesAndLoadData;

@@ -17,6 +17,7 @@ async function initializeUpload(file) {
         });
 
         const data = await response.json();
+        console.log("📦 /initialize_upload/ response:", data);
 
         if (!response.ok || !data.session_token) {
             throw new Error(data.detail || "Failed to initialize upload session.");
@@ -26,7 +27,7 @@ async function initializeUpload(file) {
         console.log("✅ session_token set:", data.session_token);
         return data.session_token;
     } catch (error) {
-        console.error("Session initialization failed:", error);
+        console.error("❌ Session initialization failed:", error);
         alert(`Upload session error: ${error.message}`);
         return null;
     }
@@ -35,7 +36,7 @@ async function initializeUpload(file) {
 async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
     const session_token = sessionStorage.getItem("session_token");
     if (!session_token) {
-        alert("❌ Missing session token. Upload cannot proceed.");
+        alert("❌ No session token available. Aborting upload.");
         return false;
     }
 
@@ -46,7 +47,6 @@ async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
     formData.append("filename", file.name);
     formData.append("session_token", session_token);
 
-    // Debug log: all form fields
     console.log("📤 Sending chunk:", {
         chunk_number: chunkNumber,
         total_chunks: totalChunks,
@@ -80,7 +80,7 @@ async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
 async function finalizeUpload(filename, totalChunks) {
     const session_token = sessionStorage.getItem("session_token");
     if (!session_token) {
-        alert("❌ Missing session token. Finalize cannot proceed.");
+        alert("❌ No session token available. Aborting finalize.");
         return false;
     }
 
@@ -115,16 +115,18 @@ async function finalizeUpload(filename, totalChunks) {
 async function startUpload() {
     const files = document.getElementById("fileInput").files;
     const progressContainer = document.getElementById("progressContainer");
-    progressContainer.innerHTML = ""; // Clear previous progress bars
+    progressContainer.innerHTML = "";
 
     if (!files.length) {
         alert("Please select files to upload.");
         return;
     }
 
-    // Initialize upload session using the first file
     const session_token = await initializeUpload(files[0]);
-    if (!session_token) return;
+    if (!session_token) {
+        alert("❌ Upload session could not be initialized. Aborting.");
+        return;
+    }
 
     for (let file of files) {
         const chunkSize = 50 * 1024 * 1024;
@@ -260,7 +262,7 @@ async function createTablesAndLoadData() {
     }
 }
 
-// Expose public functions to the window
+// Expose functions
 window.startUpload = startUpload;
 window.groupCSVs = groupCSVs;
 window.createTablesAndLoadData = createTablesAndLoadData;

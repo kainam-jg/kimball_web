@@ -7,6 +7,8 @@ async function initializeUpload(file) {
     const formData = new FormData();
     formData.append("file", file);
 
+    console.log("📡 Calling /initialize_upload/ with:", file.name);
+
     try {
         const response = await fetch(`${config.API_URL}/upload/initialize_upload/`, {
             method: "POST",
@@ -113,6 +115,7 @@ async function finalizeUpload(filename, totalChunks) {
 }
 
 async function startUpload() {
+    console.log("🚀 Starting upload...");
     const files = document.getElementById("fileInput").files;
     const progressContainer = document.getElementById("progressContainer");
     progressContainer.innerHTML = "";
@@ -122,11 +125,15 @@ async function startUpload() {
         return;
     }
 
+    console.log("📁 Files selected:", files);
+
     const session_token = await initializeUpload(files[0]);
     if (!session_token) {
         alert("❌ Upload session could not be initialized. Aborting.");
         return;
     }
+
+    console.log("✅ Upload session ready. Token:", session_token);
 
     for (let file of files) {
         const chunkSize = 50 * 1024 * 1024;
@@ -262,7 +269,7 @@ async function createTablesAndLoadData() {
     }
 }
 
-// Expose functions
+// Expose public functions
 window.startUpload = startUpload;
 window.groupCSVs = groupCSVs;
 window.createTablesAndLoadData = createTablesAndLoadData;

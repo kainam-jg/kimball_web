@@ -24,19 +24,5 @@
     <h3>3. Load into Database</h3>
     <button id="loadButton" onclick="createTablesAndLoadData()">Load Data</button>
     <div id="loadStatus"></div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const groupButton = document.getElementById("groupButton");
-            groupButton.onclick = () => {
-                if (confirm("This step may take several minutes depending on the number and size of your files. Do you want to proceed?")) {
-                    groupButton.disabled = true;
-                    groupCSVs().finally(() => {
-                        groupButton.disabled = false;
-                    });
-                }
-            };
-        });
-    </script>
 </body>
 </html>

@@ -11,18 +11,21 @@
 
     <!-- File Upload -->
     <h3>1. Upload Files</h3>
+    <p>Select one or more large CSV files to upload (supports chunked uploads).</p>
     <input type="file" id="fileInput" multiple>
     <button onclick="startUpload()">Upload</button>
     <div id="progressContainer"></div>
 
     <!-- Grouping -->
     <h3>2. File Analysis</h3>
+    <p>Group files by matching headers. This step determines table definitions.</p>
     <button onclick="groupCSVs()" id="groupButton">Analyze Files</button>
     <div id="groupResults"></div>
 
-    <!-- Load Data (includes drop + create tables) -->
-    <h3>3. Load into Database</h3>
-    <button onclick="createTablesAndLoadData()" id="loadButton">Load Data</button>
+    <!-- Load Data (create + load tables) -->
+    <h3>3. Create Tables & Load Data</h3>
+    <p>Creates ClickHouse tables and loads CSV data. Final step in pipeline.</p>
+    <button onclick="createTablesAndLoadData()" id="loadButton">Create & Load</button>
     <div id="loadStatus"></div>
 </body>
 </html>

@@ -7,7 +7,7 @@ async function initializeUpload(file) {
     const formData = new FormData();
     formData.append("file", file);
 
-    console.log("📡 Calling /initialize_upload/ with:", file.name);
+    console.log("\ud83d\udce1 Calling /initialize_upload/ with:", file.name);
 
     try {
         const response = await fetch(`${config.API_URL}/upload/initialize_upload/`, {
@@ -19,17 +19,17 @@ async function initializeUpload(file) {
         });
 
         const data = await response.json();
-        console.log("📦 /initialize_upload/ response:", data);
+        console.log("\ud83d\udce6 /initialize_upload/ response:", data);
 
         if (!response.ok || !data.session_token) {
             throw new Error(data.detail || "Failed to initialize upload session.");
         }
 
         sessionStorage.setItem("session_token", data.session_token);
-        console.log("✅ session_token set:", data.session_token);
+        console.log("\u2705 session_token set:", data.session_token);
         return data.session_token;
     } catch (error) {
-        console.error("❌ Session initialization failed:", error);
+        console.error("\u274c Session initialization failed:", error);
         alert(`Upload session error: ${error.message}`);
         return null;
     }
@@ -38,7 +38,7 @@ async function initializeUpload(file) {
 async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
     const session_token = sessionStorage.getItem("session_token");
     if (!session_token) {
-        alert("❌ No session token available. Aborting upload.");
+        alert("\u274c No session token available. Aborting upload.");
         return false;
     }
 
@@ -49,7 +49,7 @@ async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
     formData.append("filename", file.name);
     formData.append("session_token", session_token);
 
-    console.log("📤 Sending chunk:", {
+    console.log("\ud83d\udce4 Sending chunk:", {
         chunk_number: chunkNumber,
         total_chunks: totalChunks,
         filename: file.name,
@@ -70,10 +70,10 @@ async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
             throw new Error(`Status ${response.status}: ${err}`);
         }
 
-        console.log(`✅ Uploaded chunk ${chunkNumber}/${totalChunks} for ${file.name}`);
+        console.log(`\u2705 Uploaded chunk ${chunkNumber}/${totalChunks} for ${file.name}`);
         return true;
     } catch (error) {
-        console.error("❌ Upload failed:", error);
+        console.error("\u274c Upload failed:", error);
         alert(`Upload failed: ${error.message}`);
         return false;
     }
@@ -82,7 +82,7 @@ async function uploadChunk(file, chunkData, chunkNumber, totalChunks) {
 async function finalizeUpload(filename, totalChunks) {
     const session_token = sessionStorage.getItem("session_token");
     if (!session_token) {
-        alert("❌ No session token available. Aborting finalize.");
+        alert("\u274c No session token available. Aborting finalize.");
         return false;
     }
 
@@ -105,17 +105,17 @@ async function finalizeUpload(filename, totalChunks) {
             throw new Error(`Status ${response.status}: ${err}`);
         }
 
-        console.log(`✅ Finalized upload for ${filename}`);
+        console.log(`\u2705 Finalized upload for ${filename}`);
         return true;
     } catch (error) {
-        console.error("❌ Finalize upload failed:", error);
+        console.error("\u274c Finalize upload failed:", error);
         alert(`Finalize upload failed: ${error.message}`);
         return false;
     }
 }
 
 async function startUpload() {
-    console.log("🚀 Starting upload...");
+    console.log("\ud83d\ude80 Starting upload...");
     const files = document.getElementById("fileInput").files;
     const progressContainer = document.getElementById("progressContainer");
     progressContainer.innerHTML = "";
@@ -125,15 +125,15 @@ async function startUpload() {
         return;
     }
 
-    console.log("📁 Files selected:", files);
+    console.log("\ud83d\udcc1 Files selected:", files);
 
     const session_token = await initializeUpload(files[0]);
     if (!session_token) {
-        alert("❌ Upload session could not be initialized. Aborting.");
+        alert("\u274c Upload session could not be initialized. Aborting.");
         return;
     }
 
-    console.log("✅ Upload session ready. Token:", session_token);
+    console.log("\u2705 Upload session ready. Token:", session_token);
 
     for (let file of files) {
         const chunkSize = 50 * 1024 * 1024;
@@ -170,7 +170,7 @@ async function groupCSVs() {
 
     const session_token = sessionStorage.getItem("session_token");
     if (!session_token) {
-        alert("❌ Session token not found.");
+        alert("\u274c Session token not found.");
         groupButton.disabled = false;
         groupButton.innerText = "Group CSVs";
         return;
@@ -225,6 +225,12 @@ async function createTablesAndLoadData() {
     loadButton.innerText = "Loading...";
     loadStatus.innerText = "Creating tables and loading data...";
 
+    const session_token = sessionStorage.getItem("session_token");
+    if (!session_token) {
+        alert("\u274c No session token found. Cannot continue.");
+        return;
+    }
+
     try {
         const updatedGroups = fileGroups.map((group, index) => {
             const tableNameInput = document.getElementById(`group_${index}`);
@@ -237,9 +243,12 @@ async function createTablesAndLoadData() {
             };
         });
 
-        updatedJson = JSON.stringify({ groups: updatedGroups });
+        updatedJson = JSON.stringify({
+            session_token: session_token,
+            groups: updatedGroups
+        });
 
-        const createResponse = await fetch(`${config.API_URL}/csv/drop_and_create_table/`, {
+        const response = await fetch(`${config.API_URL}/csv/create_and_load_tables/`, {
             method: "POST",
             headers: {
                 "Authorization": config.AUTH_TOKEN,
@@ -248,29 +257,16 @@ async function createTablesAndLoadData() {
             body: updatedJson
         });
 
-        if (!createResponse.ok) {
-            throw new Error(`Error creating tables: ${createResponse.status}`);
+        if (!response.ok) {
+            throw new Error(`Error creating/loading tables: ${response.status}`);
         }
 
-        const loadResponse = await fetch(`${config.API_URL}/csv/load_data/`, {
-            method: "POST",
-            headers: {
-                "Authorization": config.AUTH_TOKEN,
-                "Content-Type": "application/json"
-            },
-            body: updatedJson
-        });
-
-        if (!loadResponse.ok) {
-            throw new Error(`Error loading data: ${loadResponse.status}`);
-        }
-
-        const result = await loadResponse.json();
-        console.log("Data loaded successfully:", result);
-        loadStatus.innerText = "✅ Data loaded successfully!";
+        const result = await response.json();
+        console.log("\u2705 Data loaded successfully:", result);
+        loadStatus.innerText = "\u2705 Data loaded successfully!";
     } catch (error) {
-        console.error("Error during table creation and data load:", error);
-        loadStatus.innerText = `❌ Error: ${error.message}`;
+        console.error("\u274c Error during create/load:", error);
+        loadStatus.innerText = `\u274c Error: ${error.message}`;
     } finally {
         loadButton.disabled = false;
         loadButton.innerText = "Load Data";

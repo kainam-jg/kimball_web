@@ -135,6 +135,9 @@ async function startUpload() {
 
     console.log("\u2705 Upload session ready. Token:", session_token);
 
+    let successfulUploads = [];
+    let failedUploads = [];
+
     for (let file of files) {
         const chunkSize = 50 * 1024 * 1024;
         const totalChunks = Math.ceil(file.size / chunkSize);
@@ -143,25 +146,44 @@ async function startUpload() {
         progressBar.value = 0;
         progressContainer.appendChild(progressBar);
 
+        let uploadFailed = false;
+
         for (let chunkNumber = 1; chunkNumber <= totalChunks; chunkNumber++) {
             const start = (chunkNumber - 1) * chunkSize;
             const end = Math.min(start + chunkSize, file.size);
             const chunkData = file.slice(start, end);
 
             const success = await uploadChunk(file, chunkData, chunkNumber, totalChunks);
-            if (!success) return;
+            if (!success) {
+                failedUploads.push(file.name);
+                uploadFailed = true;
+                break;
+            }
 
             progressBar.value = chunkNumber;
         }
 
-        const finalized = await finalizeUpload(file.name, totalChunks);
-        if (finalized) {
-            alert(`${file.name} uploaded successfully!`);
-        } else {
-            alert(`Failed to finalize ${file.name}`);
+        if (!uploadFailed) {
+            const finalized = await finalizeUpload(file.name, totalChunks);
+            if (finalized) {
+                successfulUploads.push(file.name);
+            } else {
+                failedUploads.push(file.name);
+            }
         }
     }
+
+    let message = "";
+    if (successfulUploads.length) {
+        message += `\u2705 Uploaded successfully:\n${successfulUploads.join("\n")}\n\n`;
+    }
+    if (failedUploads.length) {
+        message += `\u274c Failed to upload:\n${failedUploads.join("\n")}`;
+    }
+    alert(message || "No files processed.");
 }
+
+// ... rest of the code remains unchanged ...
 
 async function groupCSVs() {
     const groupButton = document.getElementById("groupButton");

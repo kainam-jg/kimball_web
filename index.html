@@ -12,30 +12,17 @@
     <!-- File Upload -->
     <h3>1. Upload Files</h3>
     <input type="file" id="fileInput" multiple>
-    <button id="uploadButton">Upload</button>
+    <button onclick="startUpload()">Upload</button>
     <div id="progressContainer"></div>
 
     <!-- Grouping -->
     <h3>2. File Analysis</h3>
-    <button id="groupButton">Analyze Files</button>
+    <button onclick="groupCSVs()" id="groupButton">Analyze Files</button>
     <div id="groupResults"></div>
 
     <!-- Load Data (includes drop + create tables) -->
     <h3>3. Load into Database</h3>
-    <button id="loadButton">Load Data</button>
+    <button onclick="createTablesAndLoadData()" id="loadButton">Load Data</button>
     <div id="loadStatus"></div>
-
-    <script type="module">
-        // Bind handlers after DOM is ready
-        import { startUpload, groupCSVs, createTablesAndLoadData } from "./app.js";
-
-        document.getElementById("uploadButton").addEventListener("click", startUpload);
-        document.getElementById("groupButton").addEventListener("click", () => {
-            if (confirm("This step may take several minutes depending on the number and size of your files. Do you want to proceed?")) {
-                groupCSVs();
-            }
-        });
-        document.getElementById("loadButton").addEventListener("click", createTablesAndLoadData);
-    </script>
 </body>
 </html>

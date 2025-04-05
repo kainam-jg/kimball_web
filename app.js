@@ -168,8 +168,16 @@ async function groupCSVs() {
     groupButton.disabled = true;
     groupButton.innerText = "Processing...";
 
+    const session_token = sessionStorage.getItem("session_token");
+    if (!session_token) {
+        alert("❌ Session token not found.");
+        groupButton.disabled = false;
+        groupButton.innerText = "Group CSVs";
+        return;
+    }
+
     try {
-        let response = await fetch(`${config.API_URL}/csv/group_csvs/`, {
+        let response = await fetch(`${config.API_URL}/csv/group_csvs/?session_token=${session_token}`, {
             method: "GET",
             headers: {
                 "Authorization": config.AUTH_TOKEN

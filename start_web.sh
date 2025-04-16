@@ -8,8 +8,8 @@ LOG_FILE="$LOG_DIR/web_server.log"
 mkdir -p "$LOG_DIR"
 
 # Start the web server on port 80 in the background
-echo "Starting Simple HTTP Server on port 8501..."
-nohup python3 -m http.server 8501 > "$LOG_FILE" 2>&1 &
+echo "Starting Simple HTTP Server on port 80..."
+nohup python3 -m http.server 80 > "$LOG_FILE" 2>&1 &
 
 # Save the process ID (PID) for easy management
 echo $! > web_server.pid
